@@ -7,7 +7,7 @@ env:
   NODE_VERSION: '18'
   CHALLENGE_LEVEL: 2
   CHALLENGE_NAME: "testes-automatizados"
-  COVERAGE_MIN: 80 # Cobertura mínima exigida em porcentagem
+  COVERAGE_MIN: 99 # Cobertura mínima exigida em porcentagem
 
 jobs:
   tests-and-coverage:
@@ -21,9 +21,15 @@ jobs:
         uses: actions/checkout@v4
 
       # INSIRA AQUI A LÓGICA PARA RODAR OS TESTES E VERIFICAR A COBERTURA
-      ###
-      ###
-      ###
+      - name: "Setup Node" # Actions Compartilhadas - Criado pela NPM
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: "Instalar Deps"
+        run: npm ci #Substitui o NPM install - nova funcionalidade do node
+
+      - name: "Executar Testes"
+        run: npm run tests
 
       - name: "Extrair porcentagem de cobertura" # Esse step será validado pelo desafio, não altere o nome. No final, ele deve gerar o output "coverage" com a porcentagem de cobertura.
         id: coverage
@@ -31,6 +37,17 @@ jobs:
           COVERAGE=$(npx nyc report --reporter=text-summary | grep -oP 'Statements\s*:\s*\K[0-9\.]+(?=%)' | head -1)
           echo "Coverage: $COVERAGE%"
           echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
+    # O passo acima faz com que a variável COVERAGE que estaria somente dentro do step, possa ser utilizada em outros locais dentro do workflow
+
+
+
+
+      - name: "Valida se os testes passaram"
+        if: ${{ steps.coverage.outputs.coverage < env.COVERAGE_MIN }} # Referencia o step com ID coverage, pega o output dele, que é a variável chamada coverage
+        run: |
+          echo: "Cobertura mínima não atendida: Esperado - ${{ env.COVERAGE_MIN }}%. Atingido: ${{ steps.coverage.outputs.coverage }}%"
+          exit 1
+
 
   generate-certificate: # DAQUI PARA BAIXO, NÃO ALTERAR
       name: "Desafio Nível 2 - Certificado"
